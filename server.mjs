@@ -2,9 +2,12 @@ import http from 'node:http';
 import {Readable} from 'node:stream';
 import {pipeline} from 'node:stream/promises';
 import {pathToFileURL} from 'node:url';
+import {readFileSync} from 'node:fs';
 
 export const UPSTREAM = 'https://liudu-club-1118.amicablebeam16.chatgpt.site';
 const LIMIT = 500000;
+const VERIFICATION_PATH = '/b4a0cbf20b78dbe8a5fbd27c3e9bc446.txt';
+const VERIFICATION_TEXT = readFileSync(new URL('.'+VERIFICATION_PATH,import.meta.url),'utf8');
 const API = new Set(['health','settle','login','logout','state','public','profile','submit','visibility','upload']);
 const allowed = path => ['/', '/index.html', '/app.js', '/style.css'].includes(path)
   || /^\/avatars\/\d+\.png$/.test(path)
@@ -22,6 +25,10 @@ export function createGateway({publicOrigin, fetchUpstream = fetch}) {
       const url = new URL(req.url, origin);
       if (url.origin !== origin || !req.url.startsWith('/') || req.url.startsWith('//')) return send(400, {error:'无效地址'});
       if (!['GET','HEAD','POST'].includes(req.method)) return send(405, {error:'不支持的请求方式'});
+      if (['GET','HEAD'].includes(req.method) && url.pathname === VERIFICATION_PATH) {
+        res.writeHead(200, {'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});
+        return res.end(req.method === 'HEAD' ? undefined : VERIFICATION_TEXT);
+      }
       if (req.method === 'GET' && url.pathname === '/gateway-health') return send(200, {ok:true, mode:'gateway'});
       if (!allowed(url.pathname)) return send(404, {error:'接口不存在'});
       if (req.method === 'POST' && req.headers.origin && req.headers.origin !== origin) return send(403, {error:'请求来源不符'});
