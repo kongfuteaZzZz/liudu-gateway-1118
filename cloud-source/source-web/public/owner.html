@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="same-origin"><title>分配查询 · 瘤度俱乐部</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/owner.css"></head>
+<body><main class="owner-main">
+<a class="owner-back" href="/">← 返回瘤度俱乐部</a>
+<div class="owner-heading"><div><p class="section-index">站主查询 / CURRENT ALLOCATIONS</p><h1>当前分配明细</h1><p>包含公开与隐藏方案，仅“张继元”账号可查看。</p></div><button class="primary" id="ownerRefresh">刷新数据 ↻</button></div>
+<p id="ownerStatus" role="status" aria-live="polite">正在验证登录并读取分配…</p>
+<section id="ownerError" class="panel owner-error" hidden><p id="ownerErrorText"></p><a href="/?next=owner">使用张继元账号登录 →</a></section>
+<section id="ownerReport" class="panel owner-report" hidden>
+<div class="owner-summary" id="ownerSummary"></div>
+<p class="owner-hint">每一列对应一个被评分头像。手机上可左右滑动表格；0 表示该头像未获分，— 表示尚未提交。时间均为北京时间。</p>
+<div class="owner-scroll" role="region" aria-label="所有人员的分配明细，可左右滑动" tabindex="0"><table id="ownerTable"></table></div>
+<p class="owner-hint">显示每个人最新生效的方案；单独修改公开状态不会改变“分配时间”。旧版记录会标注为“旧记录时间”，可能包含当时的公开状态修改。</p>
+</section></main><script type="module" src="/owner.js"></script></body></html>

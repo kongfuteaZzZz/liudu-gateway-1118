@@ -168,13 +168,17 @@ export async function ownerInspection(request,bucket,config){
   const object=await bucket.get(STATE_KEY);
   if(!object)return response({error:'尚无云端记录'},404);
   // Read one snapshot only. Never export authentication data or trigger settlement.
-  const state=scoringState(await object.json());
+  const state=await object.json();
   if(config.route==='/api/owner/logs')return response({capturedAt:Date.now(),timezone:'Asia/Shanghai',retentionDays:30,maxEvents:2000,events:(state.securityEvents||[]).filter(e=>e.time>Date.now()-30*86400000).slice(-2000).map(({id,time,date,name,action,result,ipHash})=>({id,time,date,name,action,result,ipHash}))});
+  return response(allocationReport(state));
+}
+function allocationReport(stored){
+  const state=scoringState(stored);
   const update=state.rosterUpdates?.[ROSTER_UPDATE_ID];
-  return response({capturedAt:Date.now(),timezone:'Asia/Shanghai',rosterUpdate:update?{id:ROSTER_UPDATE_ID,appliedAt:update.appliedAt,removedName:update.removedName,addedName:update.addedName,removedAccountPresent:!!state.passwordAccounts?.['张子豪'],removedLegacySessionPresent:!!state.accounts?.['张子豪'],removedProfilePresent:Object.values(state.users).some(p=>p.name==='张子豪'),removedActiveVersions:state.versions.filter(v=>v.user===accountId('张子豪')).length}:null,targets:state.targets.map(({id,image})=>({id,image})),participants:[...NAMES].map(name=>{
+  return {capturedAt:Date.now(),timezone:'Asia/Shanghai',rosterUpdate:update?{id:ROSTER_UPDATE_ID,appliedAt:update.appliedAt,removedName:update.removedName,addedName:update.addedName,removedAccountPresent:!!state.passwordAccounts?.['张子豪'],removedLegacySessionPresent:!!state.accounts?.['张子豪'],removedProfilePresent:Object.values(state.users).some(p=>p.name==='张子豪'),removedActiveVersions:state.versions.filter(v=>v.user===accountId('张子豪')).length}:null,targets:state.targets.map(({id,image})=>({id,image})),participants:[...NAMES].map(name=>{
     const versions=state.versions.filter(v=>v.user===accountId(name)),mine=versions.at(-1),allocation=versions.filter(v=>v.kind!=='visibility').at(-1);
     return {name,registered:!!state.passwordAccounts?.[name],values:mine?.values??null,visibility:mine?.visibility??null,allocationAt:allocation?.time??null,timeKind:allocation?(allocation.kind==='allocation'?'submission':'legacy_record'):null,latestRecordAt:mine?.time??null};
-  })});
+  })};
 }
 const RESET_NAMES=['张子豪','周文博','吴日成'];
 const RESET_OPERATION='2026-11-18-compromised-zhangzihao-zhouwenbo-wuricheng';
@@ -247,6 +251,10 @@ export default {
         }
       }
       const stored=await authorized(env.BUCKET,request,context),user=session(request,stored),state=scoringState(stored);actingName=user.name;
+      if(request.method==='GET'&&url.pathname==='/api/allocations'){
+        if(user.name!=='张继元')return send({error:'仅张继元账号可查询全部分配'},403);
+        return send(allocationReport(stored));
+      }
       if(request.method==='GET'&&url.pathname==='/api/state'){
         const b=board(state),mine=[...state.versions].reverse().find(v=>v.user===user.id);
         return send({...b,totals:totals(state),days:Object.values(state.days).sort((a,b)=>b.date.localeCompare(a.date)),profile:state.users[user.id]||null,mine:mine?{values:mine.values,visibility:mine.visibility}:null,dailyLimit:dailyLimit(state,user.id),now:Date.now()});

@@ -33,3 +33,5 @@ GET /api/owner/allocations 只接受X-Liudu-Owner-Key请求头，值必须匹配
 最新名单变更：张子豪已移出名单并禁止登录、注册；张婧加入，评分账号仍为24个。固定rosterUpdates迁移在R2条件事务中清除张子豪的注册、旧会话、当前分配以及旧版身份别名；张婧从独立未注册身份开始，不能继承旧方案。迁移只执行一次，后续新提交不会被重置。其他账号、头像及已结算日历史保持不变。此前包含张子豪的名单与“全部原始版本保留”文字为旧状态，当前生效规则以worker/index.mjs和最新名单变更说明为准。站主查询可核验registered布尔值和不含凭据的rosterUpdate状态。
 
 每日IP绑定与操作日志：生产需配置LIUDU_IP_PROXY_KEY Secret与LIUDU_IP_ENFORCE=true，网关持有同一Secret并签名请求。每个IP每天只使用一个账号，北京时间零点逻辑重置；注册和旧会话同样检查。站主GET /api/owner/logs继续使用X-Liudu-Owner-Key，只读返回最近30天、最多2000条操作与IP HMAC摘要；不存明文IP/密码/指纹。共享Wi-Fi可能互相限制，换网络或VPN不能保证追踪本人。见交接docs/18_IP_LOGIN_LOGS.md。
+
+2026-11-18新增网页站主查询：用户授权张继元密码账号通过/owner.html和GET /api/allocations查看全体当前方案（含隐藏）、状态与北京时间，无需Codex或输入站主Secret。服务端继续强制会话/IP校验，其他姓名无权；原Secret接口保持独立。页面不写入分配或扣次数，详见docs/19_BROWSER_OWNER_INSPECTION.md。

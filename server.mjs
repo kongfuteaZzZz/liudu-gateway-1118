@@ -10,8 +10,8 @@ export const UPSTREAM = 'https://liudu-club-1118.amicablebeam16.chatgpt.site';
 const LIMIT = 500000;
 const VERIFICATION_PATH = '/b4a0cbf20b78dbe8a5fbd27c3e9bc446.txt';
 const VERIFICATION_TEXT = readFileSync(new URL('.'+VERIFICATION_PATH,import.meta.url),'utf8');
-const API = new Set(['health','settle','login','logout','state','public','profile','submit','visibility','upload']);
-const allowed = path => ['/', '/index.html', '/app.js', '/style.css'].includes(path)
+const API = new Set(['health','settle','login','logout','state','public','profile','submit','visibility','upload','allocations']);
+const allowed = path => ['/', '/index.html', '/app.js', '/style.css','/owner.html','/owner.js','/owner.css'].includes(path)
   || /^\/avatars\/\d+\.png$/.test(path)
   || (path.startsWith('/api/') && API.has(path.slice(5)));
 const session = value => /(?:^|;\s*)(liudu_name_session=[a-f0-9]{64})(?:;|$)/.exec(value || '')?.[1];

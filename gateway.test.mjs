@@ -71,6 +71,19 @@ test('signed gateway and enforced cloud agree; account switching and direct call
  assert.equal((await req('/api/login',{action:'register',name:'吴日成',password:'test-password-123'},{'CF-Connecting-IP':'203.0.113.1'})).status,403);
  assert.equal((await req('/api/login',{action:'register',name:'吴日成',password:'test-password-123'},{'CF-Connecting-IP':'203.0.113.2'})).status,200);
 });
+test('browser inspection works through gateway only for owner and secret owner routes stay blocked',async t=>{
+ const key='local-browser-owner-gateway-key-32-characters',bucket=new Bucket();
+ const req=await start(t,(url,options)=>cloud.fetch(new Request(url,options),{BUCKET:bucket,LIUDU_IP_PROXY_KEY:key,LIUDU_IP_ENFORCE:'true'}),{ipProxyKey:key});
+ const headers={'CF-Connecting-IP':'203.0.113.1'};
+ const login=await req('/api/login',{action:'register',name:'张继元',password:'test-password-123'},headers);assert.equal(login.status,200);
+ const Cookie=login.headers.get('set-cookie').split(';')[0];
+ assert.equal((await req('/api/allocations',undefined,{...headers,Cookie})).status,200);
+ assert.equal((await req('/api/allocations',undefined,headers)).status,401);
+ const second=await req('/api/login',{action:'register',name:'吴日成',password:'test-password-123'},{'CF-Connecting-IP':'203.0.113.2'});
+ assert.equal((await req('/api/allocations',undefined,{'CF-Connecting-IP':'203.0.113.2',Cookie:second.headers.get('set-cookie').split(';')[0]})).status,403);
+ for(const asset of ['owner.html','owner.css','owner.js'])assert.equal((await req('/'+asset)).status,200);
+ for(const path of ['/api/owner/logs','/api/owner/allocations'])assert.equal((await req(path,undefined,{...headers,Cookie})).status,404);
+});
 
 test('fixed destination, same-origin checks and body limits apply before forwarding', async t => {
   const calls = [];

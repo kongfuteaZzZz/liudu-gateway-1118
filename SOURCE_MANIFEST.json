@@ -1,8 +1,8 @@
 {
-  "preparedAt": "2026-11-18T12:31:03.845Z",
-  "cloudSourceCommit": "a90386a7705fae131def5b6dc909929a6138f05c",
+  "preparedAt": "2026-11-18T15:24:35.089Z",
+  "cloudSourceCommit": "6b8dedeeb02009605d02624a00d96bfa800ac88f",
   "gatewayDeployedCommit": "c85672153174223e042c4b93eec0113347d77d46",
-  "fileCount": 49,
+  "fileCount": 54,
   "hashBasis": "Git blob bytes; text uses LF line endings",
   "files": [
     {
@@ -31,9 +31,14 @@
       "sha256": "ca9a19c19b6ad68a82f450496cbbc8cf339f1c8981417bdbf2922b98908529d6"
     },
     {
+      "path": "cloud-source/browser-owner.test.mjs",
+      "bytes": 4304,
+      "sha256": "6f04298b5f0072ac50a8dd833dd6591cde762bb5fd52dfd66682adf63e4b48b4"
+    },
+    {
       "path": "cloud-source/build.mjs",
-      "bytes": 1289,
-      "sha256": "837962ec220f4dcec61c70fd61c5670aeaa751600a69c26e362ba58630783ffa"
+      "bytes": 1346,
+      "sha256": "c878d279bd1234ac82f2f279d9acdd731946238c31cb1733e0885c49571cef2e"
     },
     {
       "path": "cloud-source/ip-login.test.mjs",
@@ -52,8 +57,8 @@
     },
     {
       "path": "cloud-source/package.json",
-      "bytes": 324,
-      "sha256": "385b68104d7e674de02667869aef7ecf948f2ea2c79bfe26bc6de6889c5f9cb4"
+      "bytes": 347,
+      "sha256": "b70f95efad839af89c1a212d35d25f95a36e2fc7bb34a5d0042a9c05b111b2f8"
     },
     {
       "path": "cloud-source/password.test.mjs",
@@ -62,8 +67,8 @@
     },
     {
       "path": "cloud-source/README.md",
-      "bytes": 6340,
-      "sha256": "eba75badf839422193e1e6b2d1ff857a9908904aaccae47154c5626ca4e0d094"
+      "bytes": 6723,
+      "sha256": "c18da97bf58a4096fff6994886072d0d9b3a436a2f308bdc47620184fdc979af"
     },
     {
       "path": "cloud-source/roster-update.test.mjs",
@@ -77,8 +82,8 @@
     },
     {
       "path": "cloud-source/source-web/public/app.js",
-      "bytes": 14322,
-      "sha256": "f081ea4c08094bc52ed6efd81bf6e9e9c5f4f0a6958a2a9cd0919ebbcb5386f5"
+      "bytes": 14545,
+      "sha256": "c2ee0f4573188273c04c8bd45024ca482cc0186e97d754067087b5f6a8ccf455"
     },
     {
       "path": "cloud-source/source-web/public/avatars/1.png",
@@ -147,8 +152,23 @@
     },
     {
       "path": "cloud-source/source-web/public/index.html",
-      "bytes": 6445,
-      "sha256": "96ae48cb85a465b20b56ad6bddb47b6173ecd07d07de71dc66fc0f8f75e9411e"
+      "bytes": 6564,
+      "sha256": "d8eacdb2fde875e479ef947e2f005edd34efc9310c0edc28aecd4db0fe9e773b"
+    },
+    {
+      "path": "cloud-source/source-web/public/owner.css",
+      "bytes": 2316,
+      "sha256": "40a1418a1f0d2765b4a39568505ee2e5f4801ff81340e5254edb97ad2b987469"
+    },
+    {
+      "path": "cloud-source/source-web/public/owner.html",
+      "bytes": 1708,
+      "sha256": "59ae3e184658b3c7fb5e9305687727722486d5e464ca851db62edaa8e9ef0913"
+    },
+    {
+      "path": "cloud-source/source-web/public/owner.js",
+      "bytes": 2858,
+      "sha256": "cc8147a2929cf5919d4aec938f0cd1df9e9cebec42c147e55c6a5f506ff5d17a"
     },
     {
       "path": "cloud-source/source-web/public/style.css",
@@ -167,8 +187,8 @@
     },
     {
       "path": "cloud-source/worker/index.mjs",
-      "bytes": 23122,
-      "sha256": "2b81ca9c96e9abee3a248f1c0899271ed037c361a9d807c640074222e7e49970"
+      "bytes": 23442,
+      "sha256": "92fa78762538ec0f070b8a4c01ec0863e497d62e21f44de54098991cd0225a99"
     },
     {
       "path": "docs/01_FINAL_REQUIREMENTS.md",
@@ -206,9 +226,14 @@
       "sha256": "71fb27220790f619156dfd6552406630c61744396e20ba0f03d15f7f338518da"
     },
     {
+      "path": "docs/19_BROWSER_OWNER_INSPECTION.md",
+      "bytes": 3603,
+      "sha256": "2102f802e8dc1a5c1da3465254fadf407c852ccb785224db3b73b6019ef30746"
+    },
+    {
       "path": "gateway.test.mjs",
-      "bytes": 8372,
-      "sha256": "f729c49282e646839393dbd64aa12cc93c89f63de5fe8350dccc606654a00fbb"
+      "bytes": 9691,
+      "sha256": "6d622c84f7810c52c2592a4a46f79ac55b72bdef79947b7de34d5d2a8d2a8bac"
     },
     {
       "path": "package.json",
@@ -217,8 +242,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 2257,
-      "sha256": "49d215640bd7efe3902112e27c6b45d02ab2273e20be3b888330c9507193ec83"
+      "bytes": 2374,
+      "sha256": "2a6fa1011279b9bef093d4b295382d972c77bdefc31f77f2c8af59aaa2c956f0"
     },
     {
       "path": "render.yaml",
@@ -247,8 +272,8 @@
     },
     {
       "path": "server.mjs",
-      "bytes": 5783,
-      "sha256": "d9b838c2f0c3f243434ce5feb2629d4b232d2345bb4135d9fcd5286fbfb8cca7"
+      "bytes": 5836,
+      "sha256": "85b645d5c39703fb1d76b5b615266f1d4cfe4ca176c07e8d8bdad6c02a5bdd1e"
     }
   ],
   "privateDataIncluded": false
