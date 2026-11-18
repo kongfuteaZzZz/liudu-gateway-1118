@@ -29,3 +29,11 @@ Render 入口当前通过 Cloudflare 边缘接入，只使用边缘覆盖的 CF-
 相同 ipHash 表示同一出口（在密钥不变时）；不能据此认定冒名者的实际身份。日志从功能启用时开始，无法追溯此前的 IP。站主查询不触发结算或任何写入。日志和原始运行数据不得同步 GitHub。
 
 实现参考：[Render边缘接入与客户端IP](https://render.com/articles/how-render-handles-ddos-attacks)、[Cloudflare的CF-Connecting-IP定义](https://developers.cloudflare.com/fundamentals/reference/http-headers/#cf-connecting-ip)。网关不用X-Forwarded-For左端值作为安全身份依据。
+
+## 生产部署核对（2026-11-18，北京时间）
+
+网关已部署GitHub提交c85672153174223e042c4b93eec0113347d77d46，Render部署dep-dbupeu4ipgvc739kgt50，状态Live。源站源码a90386a7705fae131def5b6dc909929a6138f05c，Sites第9版appgprj_6afca8e1cb308191b53889466d55f73b~appgver_86db9c959fdc8191ae1c242ba8a687ea，部署appgdep_6afd97f2ee50819192b647ed637ce839成功，应用环境修订7。两端共享Secret已配置，源站强制IP校验已开启。
+
+本地33项源站测试和7项网关测试通过，涵盖同IP切换、并发、零点、旧会话、失败密码不占用、日志清理、正文/路径/方法/Cookie篡改。线上已核对：健康检查启用IP校验；直接源站登录拒绝未签名请求；伪造X-Forwarded-For及业务签名头不会改变IP摘要；日志无密钥拒绝，有站主密钥可读。浏览器既有密码会话仍可打开榜单。线上只发送名单外无效登录测试，没有创建真实账号、提交评分或改变已有分配；生产未用他人密码测试账号切换，零点逻辑由隔离测试验证。
+
+正常入口仍为 https://liudu-gateway-1118.onrender.com/ 。新源码推送不等于再次部署；文档后续提交可比生产网关提交更新，勿据此误报生产版本落后。
