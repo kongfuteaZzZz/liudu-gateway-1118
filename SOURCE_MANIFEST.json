@@ -1,7 +1,7 @@
 {
-  "preparedAt": "2026-11-18T15:24:35.089Z",
+  "preparedAt": "2026-11-18T15:33:16.704Z",
   "cloudSourceCommit": "6b8dedeeb02009605d02624a00d96bfa800ac88f",
-  "gatewayDeployedCommit": "c85672153174223e042c4b93eec0113347d77d46",
+  "gatewayDeployedCommit": "282bdc75fbe30f7613590725927f5e9b1f998cb1",
   "fileCount": 54,
   "hashBasis": "Git blob bytes; text uses LF line endings",
   "files": [
@@ -227,8 +227,8 @@
     },
     {
       "path": "docs/19_BROWSER_OWNER_INSPECTION.md",
-      "bytes": 3603,
-      "sha256": "2102f802e8dc1a5c1da3465254fadf407c852ccb785224db3b73b6019ef30746"
+      "bytes": 4233,
+      "sha256": "c57ede933c76f00f0b605289efcc94258dca3af87ad4a721134e001571c0e3a8"
     },
     {
       "path": "gateway.test.mjs",
@@ -243,7 +243,7 @@
     {
       "path": "README.md",
       "bytes": 2374,
-      "sha256": "2a6fa1011279b9bef093d4b295382d972c77bdefc31f77f2c8af59aaa2c956f0"
+      "sha256": "8839e3d714fb77c5ca1abcbabe77763efe9dd8d254fc92676ec5e6a6900b8472"
     },
     {
       "path": "render.yaml",
