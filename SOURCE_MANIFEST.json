@@ -1,8 +1,9 @@
 {
-  "preparedAt": "2026-11-18T10:13:44.179Z",
+  "preparedAt": "2026-11-18T10:19:07.325Z",
   "cloudSourceCommit": "a9b20306b8174d3d909296f8b904e481cb9864c8",
   "gatewayDeployedCommit": "4a4faf04a2c0ba9b3607ebf44227cadda6ef64e5",
   "fileCount": 45,
+  "hashBasis": "Git blob bytes; text uses LF line endings",
   "files": [
     {
       "path": ".gitignore",
@@ -26,8 +27,8 @@
     },
     {
       "path": "cloud-source/.openai/hosting.json",
-      "bytes": 83,
-      "sha256": "82ef74924c4ed97dddb666715c108023a3b90135afb851b4b8536eea1dca4de0"
+      "bytes": 82,
+      "sha256": "ca9a19c19b6ad68a82f450496cbbc8cf339f1c8981417bdbf2922b98908529d6"
     },
     {
       "path": "cloud-source/build.mjs",
@@ -41,8 +42,8 @@
     },
     {
       "path": "cloud-source/owner-inspection.test.mjs",
-      "bytes": 4228,
-      "sha256": "a11baa1af73cab3030c28f9e4e9639cb83ca564ce2a3ad2c266e116f5bf2adc4"
+      "bytes": 4190,
+      "sha256": "d472d02b4af0a85f0104acb7808993ec9f7569e4d26b8b327ef2be45cd6173d0"
     },
     {
       "path": "cloud-source/package.json",
@@ -56,8 +57,8 @@
     },
     {
       "path": "cloud-source/README.md",
-      "bytes": 5259,
-      "sha256": "d1b95e823917691ab836421d2bb086d400e801d314b3e7a63b7c409ba22db321"
+      "bytes": 5230,
+      "sha256": "2274307a0578877f0770ef0acf41f8e266011d48b6902baeca3ce6665a0d81d0"
     },
     {
       "path": "cloud-source/source-web/core.mjs",
@@ -141,8 +142,8 @@
     },
     {
       "path": "cloud-source/source-web/public/style.css",
-      "bytes": 16094,
-      "sha256": "ebf993c28a652c6fdc5198d882cb16fc7b0d3fbb602280b7fe68a3d358270208"
+      "bytes": 16093,
+      "sha256": "26cdc39084eff3b4d4765816f008f83c8a3277f7d8b1a0352c9ea35fe100289d"
     },
     {
       "path": "cloud-source/source-web/test.mjs",
@@ -156,8 +157,8 @@
     },
     {
       "path": "cloud-source/worker/index.mjs",
-      "bytes": 16524,
-      "sha256": "4a6b5d2f7cdcca49ab02dca90f2b712e4f60afa515717fa6947f110ca947a4c0"
+      "bytes": 16312,
+      "sha256": "ec369360ba94ac85bf77e20dc7c5f34eec8ca8a86ceb2df4f9be867f75d525d2"
     },
     {
       "path": "docs/01_FINAL_REQUIREMENTS.md",
