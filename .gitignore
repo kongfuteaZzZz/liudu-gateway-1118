@@ -1,0 +1,14 @@
+**/node_modules/
+**/dist/
+**/.wrangler/
+**/worker/assets.generated.mjs
+**/.env
+**/.env.*
+!**/.env.example
+**/data/
+**/瘤度分配私密查询*/
+**/分配原始查询.json
+*.log
+*.key
+*.pem
+*.pfx

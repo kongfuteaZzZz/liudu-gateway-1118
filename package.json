@@ -2,6 +2,11 @@
   "name": "liudu-gateway",
   "private": true,
   "type": "module",
-  "scripts": {"start": "node server.mjs", "test": "node --test test.mjs"},
-  "engines": {"node": ">=22"}
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test gateway.test.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
 }
