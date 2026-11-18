@@ -3,15 +3,16 @@ import assert from 'node:assert/strict';
 import {once} from 'node:events';
 import {createGateway, UPSTREAM} from './server.mjs';
 import cloud from './cloud-source/worker/index.mjs';
+import {createHash,createHmac} from 'node:crypto';
 
 class Bucket {
   value = null; version = 0;
   async get() { return this.value === null ? null : {etag:String(this.version), json:async()=>JSON.parse(this.value)}; }
   async put(key, value) { this.value = value; return {etag:String(++this.version)}; }
 }
-async function start(t, upstream) {
+async function start(t, upstream,options={}) {
   let origin;
-  const server = createGateway({publicOrigin:'http://localhost', fetchUpstream:upstream});
+  const server = createGateway({publicOrigin:'http://localhost', fetchUpstream:upstream,...options});
   // Test requests carry the same browser Origin the server is configured to accept.
   server.listen(0, '127.0.0.1'); await once(server,'listening');
   origin = `http://127.0.0.1:${server.address().port}`;
@@ -46,6 +47,29 @@ test('gateway preserves named login, votes, hidden plans and logout with isolate
   assert.equal((await req('/api/state')).status,401);
   assert.equal((await req('/avatars/1.png')).status,200);
   assert.equal((await (await req('/api/settle')).json()).ok,true);
+});
+
+test('signed IP uses canonical edge address, ignores spoofed client headers and fails closed without trusted IP',async t=>{
+ const key='local-gateway-ip-test-secret-32-characters',calls=[];
+ const req=await start(t,async(url,options)=>{calls.push({url:String(url),options});return new Response('{}');},{ipProxyKey:key});
+ const token='a'.repeat(64),body={name:'张继元',password:'local-test-password'};
+ await req('/api/login',body,{'CF-Connecting-IP':'2001:0DB8:0000::1','X-Forwarded-For':'198.51.100.9','X-Liudu-IP-Hash':'spoof','X-Liudu-IP-Signature':'spoof',Cookie:'liudu_name_session='+token});
+ const h=calls[0].options.headers,hmac=s=>createHmac('sha256',key).update(s).digest('hex'),digest=s=>createHash('sha256').update(s).digest('hex');
+ assert.equal(h['X-Liudu-IP-Hash'],hmac('ip-v1\n2001:db8::1'));
+ assert.equal(h['X-Liudu-IP-Signature'],hmac(['v1',h['X-Liudu-IP-Time'],'POST','/api/login',h['X-Liudu-IP-Hash'],digest(JSON.stringify(body)),digest('liudu_name_session='+token)].join('\n')));
+ assert.equal(h['CF-Connecting-IP'],undefined);assert.equal(h['X-Forwarded-For'],undefined);
+ assert.equal((await req('/api/login',body,{'X-Forwarded-For':'198.51.100.9'})).status,503);
+ assert.equal((await req('/api/login',body,{'CF-Connecting-IP':'bad'})).status,503);
+ assert.equal(calls.length,1);
+});
+test('signed gateway and enforced cloud agree; account switching and direct calls fail',async t=>{
+ const key='local-gateway-and-cloud-key-minimum-32-characters',bucket=new Bucket();
+ const req=await start(t,(url,options)=>cloud.fetch(new Request(url,options),{BUCKET:bucket,LIUDU_IP_PROXY_KEY:key,LIUDU_IP_ENFORCE:'true'}),{ipProxyKey:key});
+ const first=await req('/api/login',{action:'register',name:'张继元',password:'test-password-123'},{'CF-Connecting-IP':'203.0.113.1'});assert.equal(first.status,200);
+ const Cookie=first.headers.get('set-cookie').split(';')[0];
+ assert.equal((await req('/api/state',undefined,{'CF-Connecting-IP':'203.0.113.1',Cookie})).status,200);
+ assert.equal((await req('/api/login',{action:'register',name:'吴日成',password:'test-password-123'},{'CF-Connecting-IP':'203.0.113.1'})).status,403);
+ assert.equal((await req('/api/login',{action:'register',name:'吴日成',password:'test-password-123'},{'CF-Connecting-IP':'203.0.113.2'})).status,200);
 });
 
 test('fixed destination, same-origin checks and body limits apply before forwarding', async t => {

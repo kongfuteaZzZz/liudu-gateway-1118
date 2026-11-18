@@ -32,9 +32,10 @@ export async function transaction(bucket,change){
     const object=await bucket.get(STATE_KEY);
     const state=object?await object.json():initial();
     const rosterChanged=updateRoster(state);
+    const logsChanged=pruneEvents(state);
     const due=settle(scoringState(state));
     const updated=change?change(state):false;
-    if(object&&!due&&!updated&&!rosterChanged)return state;
+    if(object&&!due&&!updated&&!rosterChanged&&!logsChanged)return state;
     const condition=object?{etagMatches:object.etag}:{etagDoesNotMatch:'*'};
     const stored=await bucket.put(STATE_KEY,JSON.stringify(state),{onlyIf:condition,httpMetadata:{contentType:'application/json'}});
     if(stored)return state;
@@ -59,7 +60,45 @@ async function passwordHash(password,salt){
   return Array.from(new Uint8Array(bits),b=>b.toString(16).padStart(2,'0')).join('');
 }
 function sameHash(a,b){if(a.length!==b.length)return false;let diff=0;for(let i=0;i<a.length;i++)diff|=a.charCodeAt(i)^b.charCodeAt(i);return diff===0;}
-async function authenticate(bucket,body){
+const bytesHex=bytes=>Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('');
+const sha256=async text=>bytesHex(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)));
+async function ipContext(request,env){
+  if(env.LIUDU_IP_ENFORCE!=='true')return null;
+  const secret=env.LIUDU_IP_PROXY_KEY;
+  if(!secret||secret.length<32)throw Object.assign(Error('网络验证尚未配置，请稍后重试'),{status:503});
+  const hash=request.headers.get('X-Liudu-IP-Hash')||'',time=request.headers.get('X-Liudu-IP-Time')||'',signature=request.headers.get('X-Liudu-IP-Signature')||'';
+  if(!/^[a-f0-9]{64}$/.test(hash)||!/^\d{13}$/.test(time)||Math.abs(Date.now()-Number(time))>300000||!/^[a-f0-9]{64}$/.test(signature))throw Object.assign(Error('请从群内网站入口重新进入，网络验证未通过'),{status:403});
+  const url=new URL(request.url),cookie=/(?:^|;\s*)(liudu_name_session=[a-f0-9]{64})(?:;|$)/.exec(request.headers.get('cookie')||'')?.[1]||'';
+  // The gateway signs the body and session as well as the IP, so headers cannot be reused for another request.
+  const text=request.method==='POST'?await bodyText(request):'';
+  const message=['v1',time,request.method,url.pathname+url.search,hash,await sha256(text),await sha256(cookie)].join('\n');
+  const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);
+  if(!sameHash(bytesHex(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(message))),signature))throw Object.assign(Error('网络验证未通过，请重新进入网站'),{status:403});
+  return {hash,text};
+}
+function pruneEvents(state){
+  if(!state.securityEvents)return false;
+  const previous=state.securityEvents.length;
+  state.securityEvents=state.securityEvents.filter(e=>e.time>Date.now()-30*86400000).slice(-2000);
+  return previous!==state.securityEvents.length;
+}
+function audit(state,context,action,name,result){
+  if(!context)return;
+  const time=Date.now();
+  state.securityEvents=(state.securityEvents||[]).filter(e=>e.time>time-30*86400000).slice(-1999);
+  state.securityEvents.push({id:crypto.randomUUID(),time,date:dateCN(time),name:NAMES.has(name)?name:null,action,result,ipHash:context.hash});
+}
+function claimIP(state,context,name){
+  if(!context)return {changed:false,blocked:false};
+  const date=dateCN(Date.now());
+  if(state.ipBindings?.date!==date)state.ipBindings={date,accounts:{}};
+  const bound=state.ipBindings.accounts[context.hash];
+  if(bound&&bound!==name)return {changed:false,blocked:true};
+  if(bound)return {changed:false,blocked:false};
+  state.ipBindings.accounts[context.hash]=name;return {changed:true,blocked:false};
+}
+const blockedIP=()=>Object.assign(Error('当前网络今天已使用其他账号，请北京时间明天零点后再切换；同一Wi-Fi可能共用公网IP'),{status:403,result:'ip_blocked'});
+async function authenticate(bucket,body,context){
   const name=typeof body?.name==='string'?body.name.trim():'',password=body?.password;
   if(!NAMES.has(name))throw Object.assign(Error('姓名不在参与名单中，请输入自己的完整姓名'),{status:403});
   if(typeof password!=='string'||password.length<8||password.length>128)throw Error('密码须为8～128个字符');
@@ -70,38 +109,55 @@ async function authenticate(bucket,body){
   const salt=register?randomHex(16):existing?.salt;
   const hash=salt?await passwordHash(password,salt):'';
   const token=register?randomHex(32):existing?.token;
-  let rejected=false;
+  let rejected=null;
   const state=await transaction(bucket,state=>{
-    rejected=false;
+    rejected=null;
     if(state.authFailures?.[name]?.count>=5&&state.authFailures[name].until>Date.now())throw Object.assign(Error('密码错误次数过多，请15分钟后重试'),{status:429});
     const current=state.passwordAccounts?.[name];
     if(register){
       if(current)throw Object.assign(Error('该姓名已注册，请使用密码登录'),{status:409});
+      if(claimIP(state,context,name).blocked){rejected=blockedIP();return false;}
       state.passwordAccounts||={};state.passwordAccounts[name]={salt,passwordHash:hash,iterations:100000,token,registeredAt:Date.now()};
       state.users[accountId(name)]||=scoringState(state).users[accountId(name)]||{name,image:''};
+      audit(state,context,'register',name,'success');
       return true;
     }
     if(!current||current.passwordHash!==existing?.passwordHash||!sameHash(hash,current.passwordHash)){
       state.authFailures||={};const old=state.authFailures[name];
       const count=old&&old.until>Date.now()?old.count+1:1;
       state.authFailures[name]={count,until:Date.now()+15*60000};
-      rejected=true;return true;
+      rejected=Object.assign(Error('姓名或密码不正确，未注册请先注册'),{status:401,result:'bad_password'});return true;
     }
-    const hadFailures=!!state.authFailures?.[name];if(hadFailures)delete state.authFailures[name];return hadFailures;
+    const binding=claimIP(state,context,name);if(binding.blocked){rejected=blockedIP();return false;}
+    const hadFailures=!!state.authFailures?.[name];if(hadFailures)delete state.authFailures[name];
+    audit(state,context,'login',name,'success');return hadFailures||binding.changed||!!context;
   });
-  if(rejected)throw Object.assign(Error('姓名或密码不正确，未注册请先注册'),{status:401});
+  if(rejected)throw rejected;
   return {name,token:state.passwordAccounts[name].token};
+}
+async function authorized(bucket,request,context){
+  let blocked=false;
+  const state=await transaction(bucket,state=>{
+    blocked=false;const user=session(request,state),binding=claimIP(state,context,user.name);
+    if(binding.blocked){blocked=true;audit(state,context,'session',user.name,'ip_blocked');return true;}
+    if(binding.changed)audit(state,context,'session',user.name,'success');return binding.changed;
+  });
+  if(blocked)throw Object.assign(blockedIP(),{auditLogged:true});return state;
 }
 function dailyLimit(state,id,now=Date.now()){
   const date=dateCN(now),used=state.versions.filter(v=>v.user===id&&v.kind==='allocation'&&dateCN(v.time)===date).length;
   return {date,limit:5,used,remaining:Math.max(0,5-used)};
 }
-async function bodyJSON(request){
-  const reader=request.body?.getReader();if(!reader)return {};
+async function bodyText(request){
+  const reader=request.body?.getReader();if(!reader)return '';
   let length=0;const chunks=[];
   while(true){const part=await reader.read();if(part.done)break;length+=part.value.length;if(length>500000){await reader.cancel();throw Error('上传内容过大');}chunks.push(part.value);}
   const bytes=new Uint8Array(length);let offset=0;for(const part of chunks){bytes.set(part,offset);offset+=part.length;}
-  try{return JSON.parse(new TextDecoder().decode(bytes)||'{}');}catch{throw Error('请求数据无效');}
+  return new TextDecoder().decode(bytes);
+}
+async function bodyJSON(request,providedText){
+  const text=providedText??await bodyText(request);
+  try{return JSON.parse(text||'{}');}catch{throw Error('请求数据无效');}
 }
 export async function ownerInspection(request,bucket,config){
   if(request.method!=='GET'||new URL(request.url).pathname!==config.route)return response({error:'接口不存在'},404);
@@ -113,6 +169,7 @@ export async function ownerInspection(request,bucket,config){
   if(!object)return response({error:'尚无云端记录'},404);
   // Read one snapshot only. Never export authentication data or trigger settlement.
   const state=scoringState(await object.json());
+  if(config.route==='/api/owner/logs')return response({capturedAt:Date.now(),timezone:'Asia/Shanghai',retentionDays:30,maxEvents:2000,events:(state.securityEvents||[]).filter(e=>e.time>Date.now()-30*86400000).slice(-2000).map(({id,time,date,name,action,result,ipHash})=>({id,time,date,name,action,result,ipHash}))});
   const update=state.rosterUpdates?.[ROSTER_UPDATE_ID];
   return response({capturedAt:Date.now(),timezone:'Asia/Shanghai',rosterUpdate:update?{id:ROSTER_UPDATE_ID,appliedAt:update.appliedAt,removedName:update.removedName,addedName:update.addedName,removedAccountPresent:!!state.passwordAccounts?.['张子豪'],removedLegacySessionPresent:!!state.accounts?.['张子豪'],removedProfilePresent:Object.values(state.users).some(p=>p.name==='张子豪'),removedActiveVersions:state.versions.filter(v=>v.user===accountId('张子豪')).length}:null,targets:state.targets.map(({id,image})=>({id,image})),participants:[...NAMES].map(name=>{
     const versions=state.versions.filter(v=>v.user===accountId(name)),mine=versions.at(-1),allocation=versions.filter(v=>v.kind!=='visibility').at(-1);
@@ -162,15 +219,16 @@ export default {
     const url=new URL(request.url);
     if(url.pathname==='/api/owner/reset-compromised-20261118')return maintenanceReset(request,env.BUCKET,env.LIUDU_ACCOUNT_RESET_KEY);
     if(url.pathname==='/api/owner/allocations')return ownerInspection(request,env.BUCKET,{route:'/api/owner/allocations',secret:env.LIUDU_OWNER_READ_KEY});
+    if(url.pathname==='/api/owner/logs')return ownerInspection(request,env.BUCKET,{route:'/api/owner/logs',secret:env.LIUDU_OWNER_READ_KEY});
     if(!url.pathname.startsWith('/api/')){
       const asset=ASSETS[url.pathname==='/'?'/index.html':url.pathname];
       if(!asset)return new Response('Not found',{status:404});
       const data=asset.binary?Uint8Array.from(atob(asset.data),c=>c.charCodeAt(0)):asset.data;
       return new Response(data,{headers:{'Content-Type':asset.type,'Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'}});
     }
-    const send=response;
+    const send=response;let context=null,loginBody=null,actingName=null;
     try{
-      if(request.method==='GET'&&url.pathname==='/api/health')return send({ok:true,storageConfigured:!!env.BUCKET,mode:'cloud',authMode:'password',dailySubmissionLimit:5});
+      if(request.method==='GET'&&url.pathname==='/api/health')return send({ok:true,storageConfigured:!!env.BUCKET,mode:'cloud',authMode:'password',dailySubmissionLimit:5,ipBindingEnabled:env.LIUDU_IP_ENFORCE==='true',ipBindingTimezone:'Asia/Shanghai'});
       if(request.method==='GET'&&url.pathname==='/api/settle'){
         const state=await transaction(env.BUCKET);
         return send({ok:true,dates:Object.keys(state.days).sort(),now:Date.now(),timezone:'Asia/Shanghai'});
@@ -179,12 +237,16 @@ export default {
         const origin=request.headers.get('origin');
         if(origin&&origin!==url.origin)return send({error:'请求来源不符'},403);
         if(url.pathname==='/api/logout')return response({ok:true},200,cookieHeader('',0));
+      }
+      context=await ipContext(request,env);
+      if(request.method==='POST'){
         if(url.pathname==='/api/login'){
-          const {name,token}=await authenticate(env.BUCKET,await bodyJSON(request));
+          loginBody=await bodyJSON(request,context?.text);
+          const {name,token}=await authenticate(env.BUCKET,loginBody,context);
           return response({ok:true,name},200,cookieHeader(token));
         }
       }
-      const stored=await transaction(env.BUCKET),user=session(request,stored),state=scoringState(stored);
+      const stored=await authorized(env.BUCKET,request,context),user=session(request,stored),state=scoringState(stored);actingName=user.name;
       if(request.method==='GET'&&url.pathname==='/api/state'){
         const b=board(state),mine=[...state.versions].reverse().find(v=>v.user===user.id);
         return send({...b,totals:totals(state),days:Object.values(state.days).sort((a,b)=>b.date.localeCompare(a.date)),profile:state.users[user.id]||null,mine:mine?{values:mine.values,visibility:mine.visibility}:null,dailyLimit:dailyLimit(state,user.id),now:Date.now()});
@@ -196,10 +258,11 @@ export default {
       if(request.method!=='POST')return send({error:'接口不存在'},404);
       const origin=request.headers.get('origin');
       if(origin&&origin!==url.origin)return send({error:'请求来源不符'},403);
-      const body=await bodyJSON(request);
+      const body=await bodyJSON(request,context?.text);
       if(!['/api/profile','/api/submit','/api/visibility','/api/upload'].includes(url.pathname))return send({error:'接口不存在'},404);
       await transaction(env.BUCKET,state=>{
         session(request,state);
+        if(claimIP(state,context,user.name).blocked)throw blockedIP();
         if(url.pathname==='/api/profile'){
           if(body.name!==undefined&&body.name!==user.name)throw Error('账号姓名不可修改，请通过切换姓名重新进入');
           if(body.image&&!imageOK(body.image))throw Error('头像格式或大小不符合要求');
@@ -211,7 +274,7 @@ export default {
           if(!['public','hidden'].includes(body.visibility))throw Error('每次提交都需要选择公开或隐藏');
           const now=Date.now();
           if(dailyLimit(scoringState(state),user.id,now).remaining===0)throw Object.assign(Error('今天已提交5次分配，请北京时间明天零点后再修改'),{status:429});
-          state.versions.push({user:user.id,time:now,kind:'allocation',values:body.values,visibility:body.visibility});return true;
+          state.versions.push({user:user.id,time:now,kind:'allocation',values:body.values,visibility:body.visibility});audit(state,context,'submit',user.name,'success');return true;
         }
         if(url.pathname==='/api/visibility'){
           if(!['public','hidden'].includes(body.visibility))throw Error('请选择公开或隐藏');
@@ -223,7 +286,13 @@ export default {
         state.targets.push({id:crypto.randomUUID(),image:body.image,created:Date.now()});return true;
       });
       return send({ok:true});
-    }catch(error){return send({error:error.status?error.message:(error.message||'请求失败')},error.status||400);}
+    }catch(error){
+      if(context&&!error.auditLogged){
+        const action=url.pathname==='/api/login'?(loginBody?.action==='register'?'register':'login'):url.pathname.slice(5);
+        try{await transaction(env.BUCKET,state=>{audit(state,context,action,loginBody?.name?.trim?.()||actingName,error.result||'rejected');return true;});}catch{return send({error:'日志保存失败，请稍后重试'},503);}
+      }
+      return send({error:error.status?error.message:(error.message||'请求失败')},error.status||400);
+    }
   },
   async scheduled(event,env,ctx){ctx.waitUntil(transaction(env.BUCKET));}
 };

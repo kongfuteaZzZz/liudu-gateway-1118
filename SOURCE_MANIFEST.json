@@ -1,8 +1,8 @@
 {
-  "preparedAt": "2026-11-18T11:04:21.891Z",
-  "cloudSourceCommit": "b779abbce979f7223c5153c8c5492498035c3dd0",
+  "preparedAt": "2026-11-18T11:25:35.169Z",
+  "cloudSourceCommit": "a90386a7705fae131def5b6dc909929a6138f05c",
   "gatewayDeployedCommit": "4a4faf04a2c0ba9b3607ebf44227cadda6ef64e5",
-  "fileCount": 47,
+  "fileCount": 49,
   "hashBasis": "Git blob bytes; text uses LF line endings",
   "files": [
     {
@@ -36,6 +36,11 @@
       "sha256": "837962ec220f4dcec61c70fd61c5670aeaa751600a69c26e362ba58630783ffa"
     },
     {
+      "path": "cloud-source/ip-login.test.mjs",
+      "bytes": 8245,
+      "sha256": "d3b1525f3c10010345ef82063d4850778e4c7f1ced3cf2c9615194a40e7c34fc"
+    },
+    {
       "path": "cloud-source/maintenance-reset.test.mjs",
       "bytes": 6088,
       "sha256": "cde83a9a0971bfd1163ab6e4b9d142536716525c1203c7b44235997e69407ffd"
@@ -47,8 +52,8 @@
     },
     {
       "path": "cloud-source/package.json",
-      "bytes": 306,
-      "sha256": "f1f041b20b608e4798a62e1e6f07dee77f0dbfb39ffcf3989264a1700f746cba"
+      "bytes": 324,
+      "sha256": "385b68104d7e674de02667869aef7ecf948f2ea2c79bfe26bc6de6889c5f9cb4"
     },
     {
       "path": "cloud-source/password.test.mjs",
@@ -57,8 +62,8 @@
     },
     {
       "path": "cloud-source/README.md",
-      "bytes": 5831,
-      "sha256": "e9e2d7b2cab5e80359b8ec7a8ae60e7488356aba4f11d8483011a0baa4167359"
+      "bytes": 6340,
+      "sha256": "eba75badf839422193e1e6b2d1ff857a9908904aaccae47154c5626ca4e0d094"
     },
     {
       "path": "cloud-source/roster-update.test.mjs",
@@ -72,8 +77,8 @@
     },
     {
       "path": "cloud-source/source-web/public/app.js",
-      "bytes": 14240,
-      "sha256": "ac5e0f2df1985bb520b9736c2974dfb7c70f645b50090f118c65fc626eb1856a"
+      "bytes": 14322,
+      "sha256": "f081ea4c08094bc52ed6efd81bf6e9e9c5f4f0a6958a2a9cd0919ebbcb5386f5"
     },
     {
       "path": "cloud-source/source-web/public/avatars/1.png",
@@ -142,8 +147,8 @@
     },
     {
       "path": "cloud-source/source-web/public/index.html",
-      "bytes": 6298,
-      "sha256": "611532719e39826ad2a132e7b3d21e3279691b65e2d3afb43a73a7cf61b64d36"
+      "bytes": 6445,
+      "sha256": "96ae48cb85a465b20b56ad6bddb47b6173ecd07d07de71dc66fc0f8f75e9411e"
     },
     {
       "path": "cloud-source/source-web/public/style.css",
@@ -162,8 +167,8 @@
     },
     {
       "path": "cloud-source/worker/index.mjs",
-      "bytes": 17897,
-      "sha256": "b57c646b799ad9c8bfbee23e258a98f2f702e715fc38323912de27c625613ec2"
+      "bytes": 23122,
+      "sha256": "2b81ca9c96e9abee3a248f1c0899271ed037c361a9d807c640074222e7e49970"
     },
     {
       "path": "docs/01_FINAL_REQUIREMENTS.md",
@@ -196,9 +201,14 @@
       "sha256": "5e48af06448cd0e43b860fe0f16765800260097e060cca5d515c5f2c5e25c94d"
     },
     {
+      "path": "docs/18_IP_LOGIN_LOGS.md",
+      "bytes": 3628,
+      "sha256": "79e03930ab89e896e68d4ee785b5316f4ee7ff9c22065b2e27ceb737fe2a7b11"
+    },
+    {
       "path": "gateway.test.mjs",
-      "bytes": 5995,
-      "sha256": "1e4c3e886afef7eb937942b49575fb2d0fdd0ee7e37f3ed21837784e284f286e"
+      "bytes": 8372,
+      "sha256": "f729c49282e646839393dbd64aa12cc93c89f63de5fe8350dccc606654a00fbb"
     },
     {
       "path": "package.json",
@@ -207,13 +217,13 @@
     },
     {
       "path": "README.md",
-      "bytes": 2107,
-      "sha256": "fb091d18c6efbc571897a1403e45dff88d02ee189b900b9b67ec0d78a7ddab48"
+      "bytes": 2257,
+      "sha256": "29ba36980502251562ffb3dcd5e2f3ccb03891e72f5bd0140859c08a09aeb8be"
     },
     {
       "path": "render.yaml",
-      "bytes": 307,
-      "sha256": "a5496b1aa644c9abcb3451b7694730cd71acf3000cb47d6153ebce0631ebadc0"
+      "bytes": 359,
+      "sha256": "c7f4514ab67df4d889f2d85a3d5023b085cd444faf97e1498690180d6acf60ee"
     },
     {
       "path": "server-timer/README.md",
@@ -237,8 +247,8 @@
     },
     {
       "path": "server.mjs",
-      "bytes": 4470,
-      "sha256": "0547a859641b4e00f134eaa94f8b27325bb1426e7f06b8775072b71ff704df7d"
+      "bytes": 5783,
+      "sha256": "d9b838c2f0c3f243434ce5feb2629d4b232d2345bb4135d9fcd5286fbfb8cca7"
     }
   ],
   "privateDataIncluded": false

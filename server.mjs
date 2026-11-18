@@ -3,6 +3,8 @@ import {Readable} from 'node:stream';
 import {pipeline} from 'node:stream/promises';
 import {pathToFileURL} from 'node:url';
 import {readFileSync} from 'node:fs';
+import {isIP} from 'node:net';
+import {createHash,createHmac} from 'node:crypto';
 
 export const UPSTREAM = 'https://liudu-club-1118.amicablebeam16.chatgpt.site';
 const LIMIT = 500000;
@@ -14,7 +16,7 @@ const allowed = path => ['/', '/index.html', '/app.js', '/style.css'].includes(p
   || (path.startsWith('/api/') && API.has(path.slice(5)));
 const session = value => /(?:^|;\s*)(liudu_name_session=[a-f0-9]{64})(?:;|$)/.exec(value || '')?.[1];
 
-export function createGateway({publicOrigin, fetchUpstream = fetch}) {
+export function createGateway({publicOrigin, fetchUpstream = fetch,ipProxyKey}) {
   const origin = new URL(publicOrigin).origin;
   return http.createServer(async (req, res) => {
     const send = (status, data) => {
@@ -46,6 +48,17 @@ export function createGateway({publicOrigin, fetchUpstream = fetch}) {
       if (req.method === 'POST') headers.Origin = UPSTREAM;
       // Assign path separately so user input can never replace the destination host.
       const target = new URL(UPSTREAM); target.pathname = url.pathname; target.search = url.search;
+      if(ipProxyKey&&url.pathname.startsWith('/api/')){
+        // Render ingress passes through Cloudflare, which overwrites CF-Connecting-IP.
+        // X-Forwarded-For can contain a client-supplied prefix; never use it here.
+        let ip=req.headers['cf-connecting-ip'];
+        if(typeof ip!=='string'||!isIP(ip)||ip.includes('%'))return send(503,{error:'无法验证当前网络，请稍后重试'});
+        if(isIP(ip)===6){ip=new URL('http://['+ip+']/').hostname.slice(1,-1);if(ip.startsWith('::ffff:')){const [a,b]=ip.slice(7).split(':').map(x=>parseInt(x,16));ip=[a>>8,a&255,b>>8,b&255].join('.');}}
+        const hmac=s=>createHmac('sha256',ipProxyKey).update(s).digest('hex'),digest=s=>createHash('sha256').update(s).digest('hex');
+        const time=String(Date.now()),hash=hmac('ip-v1\n'+ip);
+        headers['X-Liudu-IP-Hash']=hash;headers['X-Liudu-IP-Time']=time;
+        headers['X-Liudu-IP-Signature']=hmac(['v1',time,req.method,url.pathname+url.search,hash,digest(Buffer.concat(chunks)),digest(cookie||'')].join('\n'));
+      }
       const response = await fetchUpstream(target, {
         method:req.method, headers, body:req.method === 'POST' ? Buffer.concat(chunks) : undefined,
         redirect:'manual', signal:AbortSignal.timeout(20000)
@@ -72,6 +85,8 @@ export function createGateway({publicOrigin, fetchUpstream = fetch}) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const port = Number(process.env.PORT || 3000);
-  createGateway({publicOrigin:process.env.RENDER_EXTERNAL_URL || `http://localhost:${port}`})
+  const ipProxyKey=process.env.LIUDU_IP_PROXY_KEY;
+  if(!ipProxyKey||ipProxyKey.length<32)throw Error('LIUDU_IP_PROXY_KEY must be configured before starting');
+  createGateway({publicOrigin:process.env.RENDER_EXTERNAL_URL || `http://localhost:${port}`,ipProxyKey})
     .listen(port, '0.0.0.0', () => console.log('Liudu gateway listening'));
 }

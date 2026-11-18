@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
-    "test": "node --test test.mjs password.test.mjs owner-inspection.test.mjs maintenance-reset.test.mjs roster-update.test.mjs source-web/test.mjs"
+    "test": "node --test test.mjs password.test.mjs owner-inspection.test.mjs maintenance-reset.test.mjs roster-update.test.mjs ip-login.test.mjs source-web/test.mjs"
   },
   "engines": {
     "node": ">=20"
