@@ -36,7 +36,7 @@ test('reset revokes actual prior sessions, removes all three voters from denomin
   const before=JSON.parse(value),result=await call('owner','owner/reset-compromised-20261118',{names},{'X-Liudu-Reset-Key':env.LIUDU_ACCOUNT_RESET_KEY});assert.equal(result.status,200);assert.equal(result.data.submittedCount,1);
   for(const name of names){assert.equal((await call(name,'state')).status,401);assert.equal((await call(name,'submit',{values:{'001':100},visibility:'hidden'})).status,401);}
   assert.deepEqual(JSON.parse(value).passwordAccounts['张继元'],before.passwordAccounts['张继元']);assert.equal((await call('张继元','state')).data.mine.values['001'],100);
-  assert.equal((await call('new','login',{action:'register',name:'吴日成',password:'new-correct-password-123'})).status,200);const fresh=(await call('new','state')).data;assert.equal(fresh.mine,null);assert.equal(fresh.dailyLimit.used,0);
+  assert.equal((await call('new','login',{action:'register',name:'吴日成',password:'new-correct-password-123'})).status,200);const fresh=(await call('new','state')).data;assert.equal(fresh.mine,null);assert.equal(fresh.allocationQuota.used,0);
   const repeat=await call('owner','owner/reset-compromised-20261118',{names},{'X-Liudu-Reset-Key':env.LIUDU_ACCOUNT_RESET_KEY});assert.equal(repeat.status,200);assert.equal(repeat.data.accounts.find(a=>a.name==='吴日成').registered,true);
   delete env.LIUDU_ACCOUNT_RESET_KEY;assert.equal((await call('owner','owner/reset-compromised-20261118',{names})).status,403);
 });

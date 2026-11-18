@@ -21,7 +21,7 @@ test('removed name cannot login, register, use an old session or submit scores',
 test('new member starts unregistered and without inherited votes; other accounts, targets and historical days survive',async()=>{
   const f=fixture();
   const registered=await f.req('jing','login',{action:'register',name:'张婧',password:'new-password-123'});assert.equal(registered.status,200);
-  const view=(await f.req('jing','state')).data;assert.equal(view.profile.name,'张婧');assert.equal(view.mine,null);assert.equal(view.count,1);assert.equal(view.dailyLimit.used,0);
+  const view=(await f.req('jing','state')).data;assert.equal(view.profile.name,'张婧');assert.equal(view.mine,null);assert.equal(view.count,1);assert.equal(view.allocationQuota.used,0);
   const stored=JSON.parse(f.bucket.value);for(const id of ['oldZ','name:张子豪','oldJ'])assert.equal(stored.users[id],undefined);
   assert.equal(stored.passwordAccounts['张子豪'],undefined);assert.equal(stored.accounts['张子豪'],undefined);assert.equal(stored.authFailures['张子豪'],undefined);
   assert.deepEqual(stored.versions,[f.before.versions[3]]);assert.deepEqual(stored.passwordAccounts['吴日成'],f.before.passwordAccounts['吴日成']);assert.deepEqual(stored.authFailures['吴日成'],f.before.authFailures['吴日成']);assert.deepEqual(stored.targets,f.before.targets);assert.deepEqual(stored.days,f.before.days);
@@ -31,5 +31,5 @@ test('migration is idempotent and concurrent requests cannot clear new member su
   assert.equal((await f.req('jing','submit',{values:{'001':100},visibility:'hidden'})).status,200);
   const count=JSON.parse(f.bucket.value).versions.length;
   await Promise.all([f.req('jing','state'),f.req('jing','public'),f.req('jing','settle')]);
-  const view=(await f.req('jing','state')).data;assert.equal(view.mine.values['001'],100);assert.equal(view.count,2);assert.equal(view.dailyLimit.used,1);assert.equal(JSON.parse(f.bucket.value).versions.length,count);
+  const view=(await f.req('jing','state')).data;assert.equal(view.mine.values['001'],100);assert.equal(view.count,2);assert.equal(view.allocationQuota.used,1);assert.equal(JSON.parse(f.bucket.value).versions.length,count);
 });

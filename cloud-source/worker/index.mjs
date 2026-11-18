@@ -1,5 +1,5 @@
 // Business math is copied unchanged from the verified local web version.
-import {board,settle,totals,validate,dateCN} from '../source-web/core.mjs';
+import {DAY,board,cutoff,settle,totals,validate,dateCN} from '../source-web/core.mjs';
 import {ASSETS,INITIAL_TARGETS} from './assets.generated.mjs';
 const STATE_KEY='liudu/state-v1.json';
 const NAMES=new Set('吴日成、胡瑞祥、陶铎、曾禹乐、赖志图、张婧、林振河、方大凯、张子健、胡德轩、齐好真、曾庆鹏、王志毅、徐泽涛、吴子涵、胡竞航、翁扬、白建国、蔡宇浩、翁俊彦、潘一鸣、夏翔、周文博、张继元'.split('、'));
@@ -33,8 +33,9 @@ export async function transaction(bucket,change){
     const state=object?await object.json():initial();
     const rosterChanged=updateRoster(state);
     const logsChanged=pruneEvents(state);
-    const due=settle(scoringState(state));
-    const updated=change?change(state):false;
+    const now=Date.now();
+    const due=settle(scoringState(state),now);
+    const updated=change?change(state,now):false;
     if(object&&!due&&!updated&&!rosterChanged&&!logsChanged)return state;
     const condition=object?{etagMatches:object.etag}:{etagDoesNotMatch:'*'};
     const stored=await bucket.put(STATE_KEY,JSON.stringify(state),{onlyIf:condition,httpMetadata:{contentType:'application/json'}});
@@ -144,9 +145,15 @@ async function authorized(bucket,request,context){
   });
   if(blocked)throw Object.assign(blockedIP(),{auditLogged:true});return state;
 }
-function dailyLimit(state,id,now=Date.now()){
-  const date=dateCN(now),used=state.versions.filter(v=>v.user===id&&v.kind==='allocation'&&dateCN(v.time)===date).length;
-  return {date,limit:5,used,remaining:Math.max(0,5-used)};
+function allocationQuota(state,id,now=Date.now()){
+  const today=dateCN(now),yesterday=dateCN(now-DAY);
+  const afternoon=Date.parse(today+'T16:00:00+08:00'),evening=cutoff(today);
+  let since=afternoon-DAY,nextAt=afternoon;
+  if(state.days[yesterday])since=cutoff(yesterday);
+  if(now>=afternoon){since=afternoon;nextAt=evening;}
+  if(now>=evening&&state.days[today]){since=evening;nextAt=afternoon+DAY;}
+  const used=Number(state.versions.some(v=>v.user===id&&v.kind==='allocation'&&v.time>=since&&v.time<=now));
+  return {limit:1,used,remaining:1-used,nextAt};
 }
 async function bodyText(request){
   const reader=request.body?.getReader();if(!reader)return '';
@@ -184,7 +191,7 @@ const RESET_NAMES=['张子豪','周文博','吴日成'];
 const RESET_OPERATION='2026-11-18-compromised-zhangzihao-zhouwenbo-wuricheng';
 function resetStatus(state){
   const current=scoringState(state);
-  return {operation:RESET_OPERATION,completedAt:state.ownerAccountResets?.[RESET_OPERATION]?.completedAt??null,accounts:RESET_NAMES.map(name=>({name,registered:!!state.passwordAccounts?.[name],hasAllocation:current.versions.some(v=>v.user===accountId(name)),legacySessionPresent:!!state.accounts?.[name],dailyLimit:dailyLimit(current,accountId(name))})),submittedCount:board(current).count};
+  return {operation:RESET_OPERATION,completedAt:state.ownerAccountResets?.[RESET_OPERATION]?.completedAt??null,accounts:RESET_NAMES.map(name=>({name,registered:!!state.passwordAccounts?.[name],hasAllocation:current.versions.some(v=>v.user===accountId(name)),legacySessionPresent:!!state.accounts?.[name],allocationQuota:allocationQuota(current,accountId(name))})),submittedCount:board(current).count};
 }
 export function resetCompromisedAccounts(state){
   // One operation only: retries must never clear a later legitimate registration.
@@ -232,7 +239,7 @@ export default {
     }
     const send=response;let context=null,loginBody=null,actingName=null;
     try{
-      if(request.method==='GET'&&url.pathname==='/api/health')return send({ok:true,storageConfigured:!!env.BUCKET,mode:'cloud',authMode:'password',dailySubmissionLimit:5,ipBindingEnabled:env.LIUDU_IP_ENFORCE==='true',ipBindingTimezone:'Asia/Shanghai'});
+      if(request.method==='GET'&&url.pathname==='/api/health')return send({ok:true,storageConfigured:!!env.BUCKET,mode:'cloud',authMode:'password',allocationRefillTimes:['16:00','23:59'],allocationQuotaLimit:1,ipBindingEnabled:env.LIUDU_IP_ENFORCE==='true',ipBindingTimezone:'Asia/Shanghai'});
       if(request.method==='GET'&&url.pathname==='/api/settle'){
         const state=await transaction(env.BUCKET);
         return send({ok:true,dates:Object.keys(state.days).sort(),now:Date.now(),timezone:'Asia/Shanghai'});
@@ -257,7 +264,8 @@ export default {
       }
       if(request.method==='GET'&&url.pathname==='/api/state'){
         const b=board(state),mine=[...state.versions].reverse().find(v=>v.user===user.id);
-        return send({...b,totals:totals(state),days:Object.values(state.days).sort((a,b)=>b.date.localeCompare(a.date)),profile:state.users[user.id]||null,mine:mine?{values:mine.values,visibility:mine.visibility}:null,dailyLimit:dailyLimit(state,user.id),now:Date.now()});
+        const now=Date.now();
+        return send({...b,totals:totals(state),days:Object.values(state.days).sort((a,b)=>b.date.localeCompare(a.date)),profile:state.users[user.id]||null,mine:mine?{values:mine.values,visibility:mine.visibility}:null,allocationQuota:allocationQuota(state,user.id,now),now});
       }
       if(request.method==='GET'&&url.pathname==='/api/public'){
         const latest=new Map();for(const v of state.versions)latest.set(v.user,v);
@@ -268,7 +276,7 @@ export default {
       if(origin&&origin!==url.origin)return send({error:'请求来源不符'},403);
       const body=await bodyJSON(request,context?.text);
       if(!['/api/profile','/api/submit','/api/visibility','/api/upload'].includes(url.pathname))return send({error:'接口不存在'},404);
-      await transaction(env.BUCKET,state=>{
+      await transaction(env.BUCKET,(state,now)=>{
         session(request,state);
         if(claimIP(state,context,user.name).blocked)throw blockedIP();
         if(url.pathname==='/api/profile'){
@@ -280,8 +288,7 @@ export default {
         if(url.pathname==='/api/submit'){
           validate(body.values,state.targets);
           if(!['public','hidden'].includes(body.visibility))throw Error('每次提交都需要选择公开或隐藏');
-          const now=Date.now();
-          if(dailyLimit(scoringState(state),user.id,now).remaining===0)throw Object.assign(Error('今天已提交5次分配，请北京时间明天零点后再修改'),{status:429});
+          if(allocationQuota(scoringState(state),user.id,now).remaining===0)throw Object.assign(Error('本轮修改机会已用完，请等北京时间16:00或23:59结算后再提交'),{status:429});
           state.versions.push({user:user.id,time:now,kind:'allocation',values:body.values,visibility:body.visibility});audit(state,context,'submit',user.name,'success');return true;
         }
         if(url.pathname==='/api/visibility'){

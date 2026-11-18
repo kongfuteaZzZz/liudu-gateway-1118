@@ -1,6 +1,6 @@
 {
-  "preparedAt": "2026-11-18T15:50:13.715Z",
-  "cloudSourceCommit": "b5e544142bdc6e3e6c217f04c6c0ffa568b2f8f0",
+  "preparedAt": "2026-11-18T16:12:41.984Z",
+  "cloudSourceCommit": "f3d86da382a6dd5ae00f01ae81b292907130423b",
   "gatewayDeployedCommit": "282bdc75fbe30f7613590725927f5e9b1f998cb1",
   "fileCount": 54,
   "hashBasis": "Git blob bytes; text uses LF line endings",
@@ -32,8 +32,8 @@
     },
     {
       "path": "cloud-source/browser-owner.test.mjs",
-      "bytes": 4304,
-      "sha256": "6f04298b5f0072ac50a8dd833dd6591cde762bb5fd52dfd66682adf63e4b48b4"
+      "bytes": 4309,
+      "sha256": "b3a31667e42c15f0a3671cd5710cabeae58c86492b0c91d35f0e0194a648c450"
     },
     {
       "path": "cloud-source/build.mjs",
@@ -47,8 +47,8 @@
     },
     {
       "path": "cloud-source/maintenance-reset.test.mjs",
-      "bytes": 6088,
-      "sha256": "cde83a9a0971bfd1163ab6e4b9d142536716525c1203c7b44235997e69407ffd"
+      "bytes": 6093,
+      "sha256": "bd635e9a392a0e4128a0a26421da594ab2c99d9eb6ebbc084d2345dc0406a55c"
     },
     {
       "path": "cloud-source/owner-inspection.test.mjs",
@@ -62,18 +62,18 @@
     },
     {
       "path": "cloud-source/password.test.mjs",
-      "bytes": 6274,
-      "sha256": "4104659e46f86f47d3691ed258a7d77b44fa276328284102fca6dea1984d3938"
+      "bytes": 7009,
+      "sha256": "3ac9a23d6da7c244cc42faece760ca995be0cd4d03be03ceb39505eb24e1411a"
     },
     {
       "path": "cloud-source/README.md",
-      "bytes": 6723,
-      "sha256": "c18da97bf58a4096fff6994886072d0d9b3a436a2f308bdc47620184fdc979af"
+      "bytes": 6662,
+      "sha256": "4a9b6e6e694dc7de3d4a27562b5bd8a35f685f1524e6ee665f6b24bbb74f3507"
     },
     {
       "path": "cloud-source/roster-update.test.mjs",
-      "bytes": 4244,
-      "sha256": "b049bbdedc8d918022c452aae917275103afb657b5c0532655d8d4f55622720e"
+      "bytes": 4254,
+      "sha256": "adfe387ae31931ff5a86c20352b2083eb0757f3b493ce1fee83757969b4a3227"
     },
     {
       "path": "cloud-source/source-web/core.mjs",
@@ -82,8 +82,8 @@
     },
     {
       "path": "cloud-source/source-web/public/app.js",
-      "bytes": 14545,
-      "sha256": "c2ee0f4573188273c04c8bd45024ca482cc0186e97d754067087b5f6a8ccf455"
+      "bytes": 14826,
+      "sha256": "d0ffcef38a393cdb772fe5427315fdf3344957ecad829db4782c46098cb6d16e"
     },
     {
       "path": "cloud-source/source-web/public/avatars/1.png",
@@ -172,8 +172,8 @@
     },
     {
       "path": "cloud-source/source-web/public/style.css",
-      "bytes": 16093,
-      "sha256": "26cdc39084eff3b4d4765816f008f83c8a3277f7d8b1a0352c9ea35fe100289d"
+      "bytes": 16110,
+      "sha256": "39c7a1d6ad79142ad9d9ac5b81a28ac21ce06e37570ca731fed28dfe28fb5559"
     },
     {
       "path": "cloud-source/source-web/test.mjs",
@@ -182,13 +182,13 @@
     },
     {
       "path": "cloud-source/test.mjs",
-      "bytes": 6503,
-      "sha256": "b1d00030bb12e2db083c401829465c8d3a2e838723750562c3957d1152bbdd8c"
+      "bytes": 6530,
+      "sha256": "897b8f8a8c60c36b8d3506a22e59ac69a52178ba91627ea911aea4d539de01d6"
     },
     {
       "path": "cloud-source/worker/index.mjs",
-      "bytes": 23442,
-      "sha256": "92fa78762538ec0f070b8a4c01ec0863e497d62e21f44de54098991cd0225a99"
+      "bytes": 23898,
+      "sha256": "f8ad13c9f3ef6f97f50a57b1a45edf9a4a22d5b5152a69425f86d96a8e39d4f0"
     },
     {
       "path": "docs/01_FINAL_REQUIREMENTS.md",
@@ -202,8 +202,8 @@
     },
     {
       "path": "docs/14_PASSWORD_AND_DAILY_LIMIT.md",
-      "bytes": 4997,
-      "sha256": "731e6e1cb97e0b75676d659cbf4e32b4b37758ccd9ee22a92d28a9edf2e0c7c6"
+      "bytes": 5752,
+      "sha256": "ed02b5e29f3bcc3c1c1d360e9affed5abab4b4d6c44eb0c92f42c8941dd1f0fb"
     },
     {
       "path": "docs/15_OWNER_READ_INTERFACE.md",
@@ -242,8 +242,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 2374,
-      "sha256": "2f15f7fa4ef5949c1129b18861760ace3273e12980ef769262af46eff4a6f1b8"
+      "bytes": 2414,
+      "sha256": "d3d62268f74c696f75df72009ef81270f1656ee34f9726f7108b9f6ee897fd7a"
     },
     {
       "path": "render.yaml",

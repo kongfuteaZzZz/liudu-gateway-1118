@@ -33,7 +33,7 @@ test('owner password session can inspect all current plans and timestamps withou
  assert.equal(r.data.participants.find(p=>p.name==='张婧').values,null);
  for(const forbidden of ['passwordHash','passwordAccounts','salt','token','securityEvents','ipBindings','ipHash','local-password-123',key])assert.ok(!JSON.stringify(r.data).includes(forbidden));
  assert.deepEqual(JSON.parse(f.bucket.value).versions,versions);
- assert.equal((await f.req('张继元','state')).data.dailyLimit.used,1);
+ assert.equal((await f.req('张继元','state')).data.allocationQuota.used,1);
 });
 test('all other allowed accounts and unauthenticated or forged identities cannot inspect hidden plans',async()=>{
  const f=fixture();await f.register('张继元');

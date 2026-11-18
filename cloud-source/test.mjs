@@ -29,8 +29,8 @@ test('24 fixed names include Zhang Jiyuan and share one account across browsers'
  assert.equal((await req('张继元','state')).data.count,0);
  await req('张继元','submit',{values:{'001':100},visibility:'hidden'});
  await req('phone2','login',{name:' 张继元 ',password:'test-password-123'});assert.equal((await req('phone2','state')).data.mine.values['001'],100);
- await req('phone2','submit',{values:{'002':100},visibility:'public'});
- const s=(await req('张继元','state')).data;assert.equal(s.count,1);assert.equal(s.mine.values['002'],100);assert.equal(s.rows.find(r=>r.id==='002').score,100);
+ assert.equal((await req('phone2','submit',{values:{'002':100},visibility:'public'})).status,429);
+ const s=(await req('张继元','state')).data;assert.equal(s.count,1);assert.equal(s.mine.values['001'],100);assert.equal(s.rows.find(r=>r.id==='001').score,100);
  assert.equal((await req('phone2','profile',{name:'胡瑞祥'})).status,400);
  assert.equal((await req('phone2','state')).data.profile.name,'张继元');
  await req('phone2','logout',{});assert.equal((await req('phone2','state')).status,401);assert.equal((await req('张继元','state')).data.count,1);

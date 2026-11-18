@@ -30,7 +30,7 @@ test('password registration is unique; password required; old cookies revoked; s
   assert.equal((await f.req('thief','submit',plan('001'))).status,401);
   assert.equal((await f.req('phone','login',{name:'张继元',password:'correct-password-123'})).status,200);
   const view=(await f.req('phone','state')).data;
-  assert.equal(view.mine.values['001'],100);assert.equal(view.dailyLimit.used,0);
+  assert.equal(view.mine.values['001'],100);assert.equal(view.allocationQuota.used,0);
   assert.ok(JSON.parse(f.bucket.value).days.old);assert.equal(JSON.parse(f.bucket.value).versions.length,1);
   assert.ok(!f.bucket.value.includes('correct-password-123'));
   assert.ok(!JSON.stringify(view).includes('passwordHash'));
@@ -44,42 +44,57 @@ test('new registration validates name and password, concurrent claim succeeds on
   assert.deepEqual(results.map(r=>r.status).sort(),[200,409]);
 });
 
-test('first submission counts, invalid submissions do not; visibility and login cannot bypass daily cap',async()=>{
+test('only a valid allocation consumes the single chance; visibility and login cannot restore it',async()=>{
   const f=fixture();await f.register();
   assert.equal((await f.req('a','submit',{values:{'001':99},visibility:'hidden'})).status,400);
   assert.equal((await f.req('a','submit',{values:{'001':100}})).status,400);
-  for(let i=0;i<5;i++)assert.equal((await f.req('a','submit',plan(i%2?'002':'001'))).status,200);
+  assert.equal((await f.req('a','submit',plan())).status,200);
   assert.equal((await f.req('a','submit',plan('003'))).status,429);
   assert.equal((await f.req('a','visibility',{visibility:'public'})).status,200);
   await f.req('a','logout',{});await f.req('a','login',{name:'张继元',password:'correct-password-123'});
-  assert.equal((await f.req('a','state')).data.dailyLimit.remaining,0);
+  assert.equal((await f.req('a','state')).data.allocationQuota.remaining,0);
   assert.equal((await f.req('a','submit',plan('003'))).status,429);
   assert.equal((await f.req('a','state')).data.mine.values['001'],100);
-  await f.register('b','吴日成');assert.equal((await f.req('b','state')).data.dailyLimit.used,0);
+  await f.register('b','吴日成');assert.equal((await f.req('b','state')).data.allocationQuota.remaining,1);
 });
 
-test('same-name devices racing the fifth submission cannot exceed 5',async()=>{
+test('same-name devices racing for the same chance can submit only once',async()=>{
   const f=fixture();await f.register();await f.req('b','login',{name:'张继元',password:'correct-password-123'});
-  for(let i=0;i<4;i++)await f.req('a','submit',plan());
   const results=await Promise.all([f.req('a','submit',plan('002')),f.req('b','submit',plan('003'))]);
   assert.deepEqual(results.map(r=>r.status).sort(),[200,429]);
-  assert.equal((await f.req('a','state')).data.dailyLimit.used,5);
+  assert.equal((await f.req('a','state')).data.allocationQuota.remaining,0);
+  assert.equal(JSON.parse(f.bucket.value).versions.length,1);
 });
 
-test('quota uses Beijing date, survives reload; visibility records are not submissions',async()=>{
-  const f=fixture();await f.register();await f.req('a','submit',plan());
-  const state=JSON.parse(f.bucket.value),original=Date.now;
-  const before=Date.parse('2026-11-18T23:59:59+08:00');
-  state.created=before;state.targets.forEach(t=>t.created=before);state.versions[0].time=before;f.bucket.value=JSON.stringify(state);
+test('evening submission settles first, midnight gives no chance, and 16:00 refills without stacking',async()=>{
+  const f=fixture(),original=Date.now;
+  const evening=Date.parse('2026-11-18T23:59:00+08:00');
+  const afternoon=Date.parse('2026-11-19T16:00:00+08:00');
   try {
-    Date.now=()=>before;
-    assert.equal((await f.req('a','state')).data.dailyLimit.used,1);
-    await f.req('a','visibility',{visibility:'public'});
-    assert.equal((await f.req('a','state')).data.dailyLimit.used,1);
-    Date.now=()=>before+1000;
-    assert.equal((await f.req('a','state')).data.dailyLimit.used,0);
+    Date.now=()=>evening-1;
+    await f.register();await f.register('b','吴日成');
+    assert.equal((await f.req('a','submit',plan())).status,200);
+    assert.equal((await f.req('a','submit',plan('002'))).status,429);
+    assert.equal(JSON.parse(f.bucket.value).days['2026-11-18'],undefined);
+    Date.now=()=>evening;
     assert.equal((await f.req('a','submit',plan('002'))).status,200);
-    assert.equal((await f.req('a','state')).data.dailyLimit.used,1);
+    const settled=JSON.parse(f.bucket.value).days['2026-11-18'];
+    assert.equal(settled.rows[0].id,'001');
+    assert.equal(settled.rows[0].reward,6);
+    assert.equal((await f.req('a','state')).data.allocationQuota.nextAt,afternoon);
+    await f.req('a','visibility',{visibility:'public'});
+    Date.now=()=>evening+60000;
+    assert.equal((await f.req('a','submit',plan('003'))).status,429);
+    Date.now=()=>afternoon-1;
+    assert.equal((await f.req('a','state')).data.allocationQuota.remaining,0);
+    assert.equal((await f.req('b','state')).data.allocationQuota.remaining,1);
+    Date.now=()=>afternoon;
+    for(const user of ['a','b']){
+      assert.equal((await f.req(user,'state')).data.allocationQuota.remaining,1);
+      assert.equal((await f.req(user,'submit',plan('003'))).status,200);
+      assert.equal((await f.req(user,'submit',plan('004'))).status,429);
+    }
+    assert.deepEqual(JSON.parse(f.bucket.value).days['2026-11-18'],settled);
   } finally {Date.now=original;}
 });
 
