@@ -2,8 +2,23 @@
 import {board,settle,totals,validate,dateCN} from '../source-web/core.mjs';
 import {ASSETS,INITIAL_TARGETS} from './assets.generated.mjs';
 const STATE_KEY='liudu/state-v1.json';
-const NAMES=new Set('吴日成、胡瑞祥、陶铎、曾禹乐、赖志图、张子豪、林振河、方大凯、张子健、胡德轩、齐好真、曾庆鹏、王志毅、徐泽涛、吴子涵、胡竞航、翁扬、白建国、蔡宇浩、翁俊彦、潘一鸣、夏翔、周文博、张继元'.split('、'));
+const NAMES=new Set('吴日成、胡瑞祥、陶铎、曾禹乐、赖志图、张婧、林振河、方大凯、张子健、胡德轩、齐好真、曾庆鹏、王志毅、徐泽涛、吴子涵、胡竞航、翁扬、白建国、蔡宇浩、翁俊彦、潘一鸣、夏翔、周文博、张继元'.split('、'));
 const accountId=name=>'name:'+name;
+const ROSTER_UPDATE_ID='2026-11-18-remove-zhangzihao-add-zhangjing';
+function updateRoster(state){
+  if(state.rosterUpdates?.[ROSTER_UPDATE_ID])return false;
+  const names=['张子豪','张婧'],ids=new Set(names.map(accountId));
+  for(const [id,profile] of Object.entries(state.users))if(names.includes(profile.name))ids.add(id);
+  const archivedProfiles=Object.fromEntries(Object.entries(state.users).filter(([id])=>ids.has(id)));
+  const archivedVersions=state.versions.filter(v=>ids.has(v.user));
+  state.versions=state.versions.filter(v=>!ids.has(v.user));
+  for(const id of ids)delete state.users[id];
+  for(const name of names){delete state.passwordAccounts?.[name];delete state.accounts?.[name];delete state.authFailures?.[name];}
+  state.rosterUpdates||={};
+  // Apply once so later registrations and submissions by the new member survive.
+  state.rosterUpdates[ROSTER_UPDATE_ID]={appliedAt:Date.now(),removedName:'张子豪',addedName:'张婧',archivedProfiles,archivedVersions};
+  return true;
+}
 function scoringState(state){
   // Preserve stored history; known legacy names share the same voting identity.
   const users={};for(const profile of Object.values(state.users))if(NAMES.has(profile.name))users[accountId(profile.name)]=profile;
@@ -16,9 +31,10 @@ export async function transaction(bucket,change){
   for(let attempt=0;attempt<8;attempt++){
     const object=await bucket.get(STATE_KEY);
     const state=object?await object.json():initial();
+    const rosterChanged=updateRoster(state);
     const due=settle(scoringState(state));
     const updated=change?change(state):false;
-    if(object&&!due&&!updated)return state;
+    if(object&&!due&&!updated&&!rosterChanged)return state;
     const condition=object?{etagMatches:object.etag}:{etagDoesNotMatch:'*'};
     const stored=await bucket.put(STATE_KEY,JSON.stringify(state),{onlyIf:condition,httpMetadata:{contentType:'application/json'}});
     if(stored)return state;
@@ -97,9 +113,10 @@ export async function ownerInspection(request,bucket,config){
   if(!object)return response({error:'尚无云端记录'},404);
   // Read one snapshot only. Never export authentication data or trigger settlement.
   const state=scoringState(await object.json());
-  return response({capturedAt:Date.now(),timezone:'Asia/Shanghai',targets:state.targets.map(({id,image})=>({id,image})),participants:[...NAMES].map(name=>{
+  const update=state.rosterUpdates?.[ROSTER_UPDATE_ID];
+  return response({capturedAt:Date.now(),timezone:'Asia/Shanghai',rosterUpdate:update?{id:ROSTER_UPDATE_ID,appliedAt:update.appliedAt,removedName:update.removedName,addedName:update.addedName,removedAccountPresent:!!state.passwordAccounts?.['张子豪'],removedLegacySessionPresent:!!state.accounts?.['张子豪'],removedProfilePresent:Object.values(state.users).some(p=>p.name==='张子豪'),removedActiveVersions:state.versions.filter(v=>v.user===accountId('张子豪')).length}:null,targets:state.targets.map(({id,image})=>({id,image})),participants:[...NAMES].map(name=>{
     const versions=state.versions.filter(v=>v.user===accountId(name)),mine=versions.at(-1),allocation=versions.filter(v=>v.kind!=='visibility').at(-1);
-    return {name,values:mine?.values??null,visibility:mine?.visibility??null,allocationAt:allocation?.time??null,timeKind:allocation?(allocation.kind==='allocation'?'submission':'legacy_record'):null,latestRecordAt:mine?.time??null};
+    return {name,registered:!!state.passwordAccounts?.[name],values:mine?.values??null,visibility:mine?.visibility??null,allocationAt:allocation?.time??null,timeKind:allocation?(allocation.kind==='allocation'?'submission':'legacy_record'):null,latestRecordAt:mine?.time??null};
   })});
 }
 const RESET_NAMES=['张子豪','周文博','吴日成'];

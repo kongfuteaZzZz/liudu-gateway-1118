@@ -23,7 +23,7 @@ test('name gate blocks unlisted visitors and forged or old identities',async()=>
 });
 test('24 fixed names include Zhang Jiyuan and share one account across browsers',async()=>{
  const env={BUCKET:new Bucket()},req=client(env);
- const names='吴日成、胡瑞祥、陶铎、曾禹乐、赖志图、张子豪、林振河、方大凯、张子健、胡德轩、齐好真、曾庆鹏、王志毅、徐泽涛、吴子涵、胡竞航、翁扬、白建国、蔡宇浩、翁俊彦、潘一鸣、夏翔、周文博、张继元'.split('、');
+ const names='吴日成、胡瑞祥、陶铎、曾禹乐、赖志图、张婧、林振河、方大凯、张子健、胡德轩、齐好真、曾庆鹏、王志毅、徐泽涛、吴子涵、胡竞航、翁扬、白建国、蔡宇浩、翁俊彦、潘一鸣、夏翔、周文博、张继元'.split('、');
  assert.equal(new Set(names).size,24);
  for(const name of names){assert.equal((await req(name,'login',{action:'register',name,password:'test-password-123'})).status,200);assert.equal((await req(name,'state')).data.profile.name,name);}
  assert.equal((await req('张继元','state')).data.count,0);

@@ -32,11 +32,11 @@ test('reset revokes actual prior sessions, removes all three voters from denomin
     const r=await app.default.fetch(new Request('https://liudu.example/api/'+path,{method:body===undefined?'GET':'POST',headers:{Cookie:cookies[user]||'',Origin:'https://liudu.example','Content-Type':'application/json',...headers},body:body===undefined?undefined:JSON.stringify(body)}),env);
     if(r.headers.has('set-cookie'))cookies[user]=r.headers.get('set-cookie').split(';')[0];return {status:r.status,data:await r.json()};
   }
-  for(const name of [...names,'张继元']){assert.equal((await call(name,'login',{action:'register',name,password:'test-password-123'})).status,200);assert.equal((await call(name,'submit',{values:{'001':100},visibility:'hidden'})).status,200);}
+  for(const name of [...names.filter(n=>n!=='张子豪'),'张继元']){assert.equal((await call(name,'login',{action:'register',name,password:'test-password-123'})).status,200);assert.equal((await call(name,'submit',{values:{'001':100},visibility:'hidden'})).status,200);}
   const before=JSON.parse(value),result=await call('owner','owner/reset-compromised-20261118',{names},{'X-Liudu-Reset-Key':env.LIUDU_ACCOUNT_RESET_KEY});assert.equal(result.status,200);assert.equal(result.data.submittedCount,1);
   for(const name of names){assert.equal((await call(name,'state')).status,401);assert.equal((await call(name,'submit',{values:{'001':100},visibility:'hidden'})).status,401);}
   assert.deepEqual(JSON.parse(value).passwordAccounts['张继元'],before.passwordAccounts['张继元']);assert.equal((await call('张继元','state')).data.mine.values['001'],100);
-  assert.equal((await call('new','login',{action:'register',name:'张子豪',password:'new-correct-password-123'})).status,200);const fresh=(await call('new','state')).data;assert.equal(fresh.mine,null);assert.equal(fresh.dailyLimit.used,0);
-  const repeat=await call('owner','owner/reset-compromised-20261118',{names},{'X-Liudu-Reset-Key':env.LIUDU_ACCOUNT_RESET_KEY});assert.equal(repeat.status,200);assert.equal(repeat.data.accounts[0].registered,true);
+  assert.equal((await call('new','login',{action:'register',name:'吴日成',password:'new-correct-password-123'})).status,200);const fresh=(await call('new','state')).data;assert.equal(fresh.mine,null);assert.equal(fresh.dailyLimit.used,0);
+  const repeat=await call('owner','owner/reset-compromised-20261118',{names},{'X-Liudu-Reset-Key':env.LIUDU_ACCOUNT_RESET_KEY});assert.equal(repeat.status,200);assert.equal(repeat.data.accounts.find(a=>a.name==='吴日成').registered,true);
   delete env.LIUDU_ACCOUNT_RESET_KEY;assert.equal((await call('owner','owner/reset-compromised-20261118',{names})).status,403);
 });
